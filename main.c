@@ -1,42 +1,125 @@
+#include <SDL2/SDL.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdbool.h>
 
-void median(unsigned char *input, unsigned char *output);
+#ifdef _median
+extern "C" {
+#endif
+int median(char* input, char* output);
+#ifdef	_median
+}
+#endif
 
-int main(int argc, char * argv[])
+const int SCREEN_WIDTH = 500;
+const int SCREEN_HEIGHT = 575;
+
+void close();
+bool init();
+bool loadMedia(char *text);
+
+SDL_Window* gWindow = NULL;
+SDL_Surface* gScreenSurface = NULL;
+SDL_Surface* gHelloWorld = NULL;
+
+int main(void)
 {
-    long fileLength;
-    FILE *outputImage, *inputImage;
-    unsigned char *inputArray, *outputArray;
+	int wynik;
+	char* read, *write;
+	read = (char*)malloc(20*sizeof(char));
+	write = (char*)malloc(20*sizeof(char));
+	printf("Podaj nazwe pliku do wczytania\n");
+	scanf("%s", read);
+	printf("Podaj nazwe pliku do zapisania\n");
+	scanf("%s", write);
+	/*printf("Podaj rozmiar okienka\n");
+	scanf("%d", &windows);*/
 
-    if (argc != 3)
-    {
-        printf ("Niewlasciwa liczba argumentow.\n");
-    }
-    else
-    {
-
-        if ((inputImage = fopen(argv[1], "r")) == NULL)
-        {
-            printf ("Nie mogę otworzyć pliku %s \n", argv[1]);
-        }
-        else
-        {
-            outputImage = fopen(argv[2], "a");
-            fseek(inputImage, 0, SEEK_END);
-            fileLength = ftell(inputImage);
-            rewind(inputImage);
-            inputArray = (unsigned char *)malloc((fileLength+1)*sizeof(unsigned char));
-            outputArray = (unsigned char *)malloc((fileLength+1)*sizeof(unsigned char));
-            fread(inputArray, fileLength, 1, inputImage);
-
-            median(inputArray, outputArray);
+	wynik = median(read, write);
+	printf("Wypisano %d\n", wynik);
 	
-            fwrite(outputArray, fileLength+1, 1, outputImage);
-            fclose(outputImage);
-            fclose(inputImage);
-        }
-    }
+
+	if(!init())
+	{
+		printf("Failed to initialize!\n");
+	}
+	else
+	{
+		if(!loadMedia(write))
+		{
+			printf("Failed to load media!\n");
+		}
+		else
+		{
+			bool quit = false;
+		
+	
+			while(!quit)
+			{
+				SDL_Event e;
+				while(SDL_PollEvent(&e) && (quit  == false)){
+					if(e.type == SDL_QUIT){
+						quit = true;
+					}
+				}
+				
+				SDL_BlitSurface(gHelloWorld, NULL, gScreenSurface, NULL);
+
+				SDL_UpdateWindowSurface(gWindow);
+					
+			}
+		}
+	}
+
+	close();	
+	
 	return 0;
 }
 
+bool init()
+{
+	bool success = true;
+	if(SDL_Init(SDL_INIT_VIDEO)<0)
+	{
+		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+		success = false;
+	}
+	else
+	{
+		gWindow = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+		if(gWindow == NULL)
+		{
+			printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
+			success = false;
+		}
+		else
+		{
+			gScreenSurface = SDL_GetWindowSurface(gWindow);
+		}
+	}
+
+	return success;
+}
+
+bool loadMedia(char *text)
+{
+	bool success = true;
+	gHelloWorld = SDL_LoadBMP(text);
+	if( gHelloWorld == NULL)
+	{	
+		printf("Unable to load image %s! SDL Error: %s\n", ".bmp", SDL_GetError());
+		success = false;
+	}
+	
+	return success;
+}
+
+void close()
+{
+	SDL_FreeSurface(gHelloWorld);
+	gHelloWorld = NULL;
+
+	SDL_DestroyWindow(gWindow);
+	gWindow = NULL;
+
+	SDL_Quit();
+}
